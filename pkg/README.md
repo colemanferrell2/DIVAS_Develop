@@ -10,7 +10,7 @@
 
 ## Introduction
 
-DIVAS (Data Integration via Analysis of Subspaces) is an R package for multi-modal data integration. Based on the DIVAS methodology proposed by Prothero et al. (2024), it provides tools for signal extraction, noise estimation, and joint structure identification from high-dimensional datasets, useful for multi-omics and other complex data types.
+We provide an R implementation of DIVAS (Prothero et al., 2024), a statistical method for multi-modal data integration. Via statistical analysis of subspaces, DIVAS identifies joint, partially shared, and individual variation across multiple data blocks in a completely data-driven way. In addition to translating the original MATLAB implementation into an accessible R package, we also provide visualization tools and worked examples for exploring DIVAS results in practice.
 
 **Documentation website**: [https://byronsyun.github.io/DIVAS_Develop/](https://byronsyun.github.io/DIVAS_Develop/)
 
@@ -18,7 +18,7 @@ DIVAS (Data Integration via Analysis of Subspaces) is an R package for multi-mod
 
 ### Dependencies
 
-The DIVAS package requires the current 1.x line of the `CVXR` package for compatibility with the SCS solver interface. The package has been tested with `CVXR` 1.0-15.
+The DIVAS package requires the current 1.x line of the `CVXR` package for compatibility with the SCS solver interface. The package has been tested with `CVXR` 1.0-15. In `DESCRIPTION`, DIVAS also declares `CVXR (>= 1.0-15)` as a package dependency.
 
 ```R
 # Install devtools (if not already installed)
@@ -46,46 +46,38 @@ devtools::install_github("ByronSyun/DIVAS_Develop/pkg", ref = "main")
 
 ## Usage Examples
 
-The DIVAS package supports analysis of various data formats. Here are two examples using different data formats:
-
-### Example 1: Using MATLAB data
+The DIVAS package supports analysis of various data formats. Here is a simple example using the built-in toy MATLAB dataset:
 
 ```R
-# Load necessary libraries
-library(devtools)
 library(R.matlab)
 library(DIVAS)
 
-# Construct the path to the data file within the package
 data_path <- system.file("extdata", "toyDataThreeWay.mat", package = "DIVAS")
-# Read MATLAB data
 data <- readMat(data_path)
 
-# Prepare data blocks
 datablock <- list(
   X1 = data$datablock[1,1][[1]][[1]],
   X2 = data$datablock[1,2][[1]][[1]],
   X3 = data$datablock[1,3][[1]][[1]]
 )
 
-# Run DIVAS main function
 result <- DIVASmain(datablock)
-
-# Visualize results
 dataname <- paste0("DataBlock_", 1:length(datablock))
 plots <- DJIVEAngleDiagnosticJP(datablock, dataname, result, 566, "Demo")
 print(plots)
 ```
 
-See the documentation website for more detailed examples and tutorials.
+For more detailed tutorials, see the documentation website and linked case studies below.
 
 ## Available Datasets
 
+We provide the following examples to illustrate the use of DIVAS in different scenarios.
+
 | Dataset             | Brief Description                                  | Vignette Link                                                                                              | Format | Primary Reference      |
 |---------------------|----------------------------------------------------|------------------------------------------------------------------------------------------------------------|--------|------------------------|
-| toyDataThreeWay.mat | Synthetic 3-block data with known joint structures | [Toy Dataset Example](https://byronsyun.github.io/DIVAS_Develop/articles/DIVAS_Toy_Dataset_Example.html)       | .mat   | Prothero et al. (2024) |
+| toyDataThreeWay.mat | Synthetic 3-block data with known joint structures | [Toy Dataset Example](https://byronsyun.github.io/DIVAS_Develop/articles/DIVAS_Toy_Dataset_Example.html) | .mat   | Prothero et al. (2024) |
 | gnp_imputed.qs      | GNP economic time series data                      | [GNP Dataset Example](https://byronsyun.github.io/DIVAS_Develop/articles/DIVAS_GNP_Dataset_Example.html) | .qs    | Stock & Watson (2016)  |
-| COVID-19 Multi-Omics | 6-block integration: scRNA-seq (4 cell types), proteomics, metabolomics from 114 COVID-19 patient samples | [COVID Case Study](https://byronsyun.github.io/DIVAS_COVID19_CaseStudy/)                                                                                                | .rds    | Su et al. (2020)       |
+| COVID-19 Multi-Omics | 6-block integration: scRNA-seq (4 cell types), proteomics, metabolomics from 114 COVID-19 patient samples | [COVID Case Study](https://byronsyun.github.io/DIVAS_COVID19_CaseStudy/) | .rds   | Su et al. (2020) |
 
 ## Case Study: COVID-19 Multi-Omics Analysis
 
