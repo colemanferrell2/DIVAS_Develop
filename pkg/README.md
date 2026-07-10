@@ -18,15 +18,18 @@ DIVAS (Data Integration via Analysis of Subspaces) is an R package for multi-mod
 
 ### Dependencies
 
-The DIVAS package requires a modern version of the `CVXR` package to ensure compatibility with underlying solvers like SCS. We strongly recommend installing the latest stable version from CRAN.
+The DIVAS package requires the current 1.x line of the `CVXR` package for compatibility with the SCS solver interface. The package has been tested with `CVXR` 1.0-15.
 
 ```R
 # Install devtools (if not already installed)
 install.packages("devtools")
 
-# Install the latest version of CVXR from CRAN
-# This is critical to avoid issues with solver status recognition (e.g., for SCS)
-install.packages("CVXR")
+# Install CVXR 1.x. DIVAS has been tested with CVXR 1.0-15.
+install.packages("remotes")
+remotes::install_version("CVXR", version = "1.0-15", repos = "https://cloud.r-project.org")
+
+# Alternatively, install the latest CRAN release if it is compatible with your R version.
+# install.packages("CVXR")
 ```
 
 ### Installing the DIVAS package
@@ -104,4 +107,3 @@ Su, Y., Chen, D., Yuan, D., et al. (2020). Multi-Omics Resolves a Sharp Disease-
 ## License
 
 This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3) - see the LICENSE file for details.
-

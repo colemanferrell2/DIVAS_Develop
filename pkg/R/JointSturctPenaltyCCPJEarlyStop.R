@@ -41,7 +41,7 @@ ccpSubOptJPEarlyStop <- function(v0, Qo1, Qo2, Qc1, Qc2, Vo, tau) {
   result <- CVXR::psolve(problem, solver = "SCS")
 
   # PATCH: Intercept and correct the solver status.
-  # The 'SCS' solver can return a status of "solved" which CVXR version 1.0.15
+  # The 'SCS' solver can return a status of "solved" which CVXR version 1.0-15
   # does not recognize, causing a "status unrecognized" error.
   # We manually map "solved" to "optimal" to ensure compatibility.
   if (result$status == "solved") {
@@ -171,4 +171,3 @@ penaltyCCPJPEarlyStop <- function(v0, Qo1, Qo2, Qc1, Qc2, Vorth, optArgin = list
   opt_v <- cache_v[[t]]
   return(list(opt_v = opt_v, cache_v = cache_v, cache_cvx_objval = cache_cvx_objval, cache_slack = cache_slack, converge = converge))
 }
-
