@@ -36,6 +36,49 @@ MatCenterJP <- function(X, iColCent = F, iRowCent = F) {
   }
   return(outMat)
 }
+
+
+
+#' Construct MCA-Style SVD Input for Categorical DIVAS Blocks
+#'
+#' `MatCenterDIVASCHOIR` converts a categorical data block into the centered
+#' and scaled indicator matrix used for MCA-style singular value decomposition.
+#'
+#' For a block with `n` samples and total one-hot dimension `J`, this constructs
+#' the matrix
+#'
+#' \deqn{\tilde{M}_k^T = D_{\hat{p}_k}^{-1/2}
+#' ((X_k^{obs})^T - \hat{p}_k 1_n^T)}
+#'
+#' where `X_obs` is the `n x J` stacked one-hot matrix,
+#' `p_hat = n^{-1} t(X_obs) 1_n`, and `D_p_hat = diag(p_hat)`.
+#'
+#' @param block A data.frame or matrix containing categorical variables measured
+#'   across samples. Rows are samples and columns are categorical variables.
+#'
+#' @return A numeric matrix with categories/features in rows and samples in
+#'   columns.
+#'
+#' @export
+MatCenterDIVASCHOIR <- function(block) {
+  block <- as.data.frame(block)
+  block[] <- lapply(block, factor)
+
+  indicator_list <- Map(function(x, variable_name) {
+    mm <- stats::model.matrix(~ x - 1)
+    level_names <- sub("^x", "", colnames(mm))
+    colnames(mm) <- paste0(variable_name, level_names)
+    mm
+  }, block, names(block))
+  indicator <- do.call(cbind, indicator_list)
+  p_hat <- colMeans(indicator)
+
+  svd_input <- sweep(t(indicator), 1, p_hat, "-")
+  svd_input <- sweep(svd_input, 1, sqrt(p_hat), "/")
+
+  colnames(svd_input) <- rownames(block)
+  svd_input
+}
 #
 # ####################################test######################################
 # # Sample data matrix

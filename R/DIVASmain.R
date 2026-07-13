@@ -41,45 +41,46 @@ DIVASmain <- function(
   continuous_datablock <- if (is.null(continuous_datablock)) list() else continuous_datablock
   categorical_datablock <- if (is.null(categorical_datablock)) list() else categorical_datablock
 
-  continuous_datablock_centered <- continuous_datablock
-  categorical_datablock_centered <- lapply(categorical_datablock, MatCenterDIVASCHOIR)
-
-  # Initialize parameters
-  nb_continuous <- length(continuous_datablock_centered)
-  nb_categorical <- length(categorical_datablock_centered)
-
-  continuous_dataname <- names(continuous_datablock_centered)
-  if(is.null(continuous_dataname) && nb_continuous > 0){
+  # Initialize continuous parameters
+  continuous_nb <- length(continuous_datablock)
+  continuous_dataname <- names(continuous_datablock)
+  if(is.null(continuous_dataname) && continuous_nb > 0){
     warning("Input continuous_datablock is unnamed, generic names for continuous data blocks generated.")
-    continuous_dataname <- paste0("ContinuousDatablock", 1:nb_continuous)
-    names(continuous_datablock_centered) <- continuous_dataname
+    continuous_dataname <- paste0("ContinuousDatablock", 1:continuous_nb)
   }
 
-  categorical_dataname <- names(categorical_datablock_centered)
-  if(is.null(categorical_dataname) && nb_categorical > 0){
+  # Initialize categorical parameters
+  categorical_nb <- length(categorical_datablock)
+  categorical_dataname <- names(categorical_datablock)
+  if(is.null(categorical_dataname) && categorical_nb > 0){
     warning("Input categorical_datablock is unnamed, generic names for categorical data blocks generated.")
-    categorical_dataname <- paste0("CategoricalDatablock", 1:nb_categorical)
-    names(categorical_datablock_centered) <- categorical_dataname
+    categorical_dataname <- paste0("CategoricalDatablock", 1:categorical_nb)
   }
 
   # Some tuning parameters for algorithms
   theta0 <- 45
   optArgin <- list(0.5, 1000, 1.05, 50, 1e-3, 1e-3)
   filterPerc <- 1 - (2 / (1 + sqrt(5))) # "Golden Ratio"
-  noisepercentile_continuous <- rep(0.5, nb_continuous)
+  continuous_noisepercentile <- rep(0.5, continuous_nb)
 
 
-  continuous_rowSpaces <- vector("list", nb_continuous)
+  continuous_rowSpaces <- vector("list", continuous_nb)
   # datablockc <- vector("list", nb)
-  for (ib in seq_len(nb_continuous)) {
+  for (ib in seq_len(continuous_nb)) {
     continuous_rowSpaces[[ib]] <- 0
-    continuous_datablock_centered[[ib]] <- MatCenterJP(continuous_datablock_centered[[ib]], colCent, rowCent)
+    continuous_datablock[[ib]] <- MatCenterJP(continuous_datablock[[ib]], colCent, rowCent)
+  }
+
+  categorical_rowSpaces <- vector("list", categorical_nb)
+  for (ib in seq_len(categorical_nb)) {
+    categorical_rowSpaces[[ib]] <- 0
+    categorical_datablock[[ib]] <- MatCenterDIVASCHOIR(categorical_datablock[[ib]])
   }
 
   # Step 1: Estimate signal space and perturbation angle
   Phase1 <- DJIVESignalExtractJP(
-    datablock = continuous_datablock_centered, nsim = nsim,
-    iplot = FALSE, colCent = colCent, rowCent = rowCent, cull = filterPerc, noisepercentile = noisepercentile_continuous,
+    datablock = continuous_datablock, nsim = nsim,
+    iplot = FALSE, colCent = colCent, rowCent = rowCent, cull = filterPerc, noisepercentile = continuous_noisepercentile,
     seed = seed
   )
   # VBars <- Phase1[[1]]
@@ -103,7 +104,7 @@ DIVASmain <- function(
 
   # Step 3: Reconstruct DJIVE decomposition
   outstruct <- DJIVEReconstructMJ(
-    datablock = continuous_datablock_centered, dataname =  continuous_dataname, outMap =  Phase2$outMap,
+    datablock = continuous_datablock, dataname =  continuous_dataname, outMap =  Phase2$outMap,
     keyIdxMap =  Phase2$keyIdxMap, jointBlockOrder =  Phase2$jointBlockOrder, doubleCenter =  0
   )
 
@@ -131,9 +132,7 @@ DIVASmain <- function(
   
   names(keymapname) <- names(outstruct$keyIdxMap)
   outstruct$keymapname <- keymapname
-  outstruct$continuous_datablock_centered <- continuous_datablock_centered
-  outstruct$categorical_datablock_centered <- categorical_datablock_centered
-  outstruct$continuous_dataname <- continuous_dataname
+  outstruct$categorical_datablock <- categorical_datablock
   outstruct$categorical_dataname <- categorical_dataname
 
   return(outstruct)
