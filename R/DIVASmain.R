@@ -3,7 +3,8 @@
 #' Main function for DIVAS analysis. Given a list of data blocks with matched columns (samples), will return identified joint
 #' structure with diagnostic plots.
 #'
-#' @param datablock A list of matrices with the same number of columns (samples).
+#' @param continuous_datablock A list of matrices with the same number of columns (samples).
+#' @param categorical_datablock A list of categorical matrices or data.frames. For data.frames, each column is treated as a categorical variable measured across samples and is one-hot encoded before analysis.
 #' @param nsim Number of bootstrap resamples for inferring angle bounds.
 #' @param iprint Whether to print diagnostic figures.
 #' @param colCent Whether to column centre the input data blocks.
@@ -33,39 +34,52 @@
 #' Prothero, J., Jiang, M., Hannig, J., Tran-Dinh, Q., Ackerman, A. and Marron, J. S. (2024).
 #' Data integration via analysis of subspaces (DIVAS). Test.
 #'
-#'
-#' @export
 DIVASmain <- function(
-    datablock, nsim = 400, iprint = TRUE, colCent = FALSE, rowCent = FALSE,
-    figdir = NULL, seed = NULL
+    continuous_datablock = NULL, categorical_datablock = NULL, nsim = 400,
+    iprint = TRUE, colCent = FALSE, rowCent = FALSE, figdir = NULL, seed = NULL
   ){
+  continuous_datablock <- if (is.null(continuous_datablock)) list() else continuous_datablock
+  categorical_datablock <- if (is.null(categorical_datablock)) list() else categorical_datablock
+
+  continuous_datablock_centered <- continuous_datablock
+  categorical_datablock_centered <- lapply(categorical_datablock, MatCenterDIVASCHOIR)
 
   # Initialize parameters
-  nb <- length(datablock)
-  dataname <- names(datablock)
-  if(is.null(dataname)){
-    warning("Input datablock is unnamed, generic names for data blocks generated.")
-    dataname <- paste0("Datablock", 1:nb)
+  nb_continuous <- length(continuous_datablock_centered)
+  nb_categorical <- length(categorical_datablock_centered)
+
+  continuous_dataname <- names(continuous_datablock_centered)
+  if(is.null(continuous_dataname) && nb_continuous > 0){
+    warning("Input continuous_datablock is unnamed, generic names for continuous data blocks generated.")
+    continuous_dataname <- paste0("ContinuousDatablock", 1:nb_continuous)
+    names(continuous_datablock_centered) <- continuous_dataname
+  }
+
+  categorical_dataname <- names(categorical_datablock_centered)
+  if(is.null(categorical_dataname) && nb_categorical > 0){
+    warning("Input categorical_datablock is unnamed, generic names for categorical data blocks generated.")
+    categorical_dataname <- paste0("CategoricalDatablock", 1:nb_categorical)
+    names(categorical_datablock_centered) <- categorical_dataname
   }
 
   # Some tuning parameters for algorithms
   theta0 <- 45
   optArgin <- list(0.5, 1000, 1.05, 50, 1e-3, 1e-3)
   filterPerc <- 1 - (2 / (1 + sqrt(5))) # "Golden Ratio"
-  noisepercentile <- rep(0.5, nb)
+  noisepercentile_continuous <- rep(0.5, nb_continuous)
 
 
-  rowSpaces <- vector("list", nb)
+  continuous_rowSpaces <- vector("list", nb_continuous)
   # datablockc <- vector("list", nb)
-  for (ib in seq_len(nb)) {
-    rowSpaces[[ib]] <- 0
-    datablock[[ib]] <- MatCenterJP(datablock[[ib]], colCent, rowCent)
+  for (ib in seq_len(nb_continuous)) {
+    continuous_rowSpaces[[ib]] <- 0
+    continuous_datablock_centered[[ib]] <- MatCenterJP(continuous_datablock_centered[[ib]], colCent, rowCent)
   }
 
   # Step 1: Estimate signal space and perturbation angle
   Phase1 <- DJIVESignalExtractJP(
-    datablock = datablock, nsim = nsim,
-    iplot = FALSE, colCent = colCent, rowCent = rowCent, cull = filterPerc, noisepercentile = noisepercentile,
+    datablock = continuous_datablock_centered, nsim = nsim,
+    iplot = FALSE, colCent = colCent, rowCent = rowCent, cull = filterPerc, noisepercentile = noisepercentile_continuous,
     seed = seed
   )
   # VBars <- Phase1[[1]]
@@ -80,7 +94,7 @@ DIVASmain <- function(
   # Step 2: Estimate joint and partially joint structure
   Phase2 <- DJIVEJointStrucEstimateJP(
     VBars = Phase1$VBars, UBars = Phase1$UBars, phiBars =  Phase1$phiBars, psiBars =  Phase1$psiBars,
-    rBars = Phase1$rBars, dataname = dataname, iprint = iprint, figdir = figdir
+    rBars = Phase1$rBars, dataname = continuous_dataname, iprint = iprint, figdir = figdir
   )
 
   # outMap <- Phase2[[1]]
@@ -89,7 +103,7 @@ DIVASmain <- function(
 
   # Step 3: Reconstruct DJIVE decomposition
   outstruct <- DJIVEReconstructMJ(
-    datablock = datablock, dataname =  dataname, outMap =  Phase2$outMap,
+    datablock = continuous_datablock_centered, dataname =  continuous_dataname, outMap =  Phase2$outMap,
     keyIdxMap =  Phase2$keyIdxMap, jointBlockOrder =  Phase2$jointBlockOrder, doubleCenter =  0
   )
 
@@ -104,19 +118,23 @@ DIVASmain <- function(
 
   # Automatically generate keymapname from keymapid
   ids <- as.integer(names(outstruct$keyIdxMap))
-  num_blocks <- length(dataname)
+  num_blocks <- length(continuous_dataname)
   
   keymapname <- sapply(ids, function(id) {
     binary_str <- R.utils::intToBin(id)
     padded_binary_str <- sprintf(paste0("%0", num_blocks, "s"), binary_str)
     binary_chars <- strsplit(padded_binary_str, "")[[1]]
     selected_indices <- which(rev(binary_chars) == '1')
-    selected_names <- dataname[selected_indices]
+    selected_names <- continuous_dataname[selected_indices]
     paste(selected_names, collapse = "+")
   })
   
   names(keymapname) <- names(outstruct$keyIdxMap)
   outstruct$keymapname <- keymapname
+  outstruct$continuous_datablock_centered <- continuous_datablock_centered
+  outstruct$categorical_datablock_centered <- categorical_datablock_centered
+  outstruct$continuous_dataname <- continuous_dataname
+  outstruct$categorical_dataname <- categorical_dataname
 
   return(outstruct)
 }
