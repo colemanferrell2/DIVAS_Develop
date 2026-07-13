@@ -85,9 +85,21 @@ DIVASmain <- function(
   )
 
   # Step 1: Estimate categorical signal space
-  Phase1_categorical <- DIVASCHOIRSignalExtract(
-    categorical_datablock = categorical_datablock
-  )
+  if (categorical_nb > 0) {
+    Phase1_categorical <- DIVASCHOIRSignalExtract(
+      datablock = categorical_datablock,
+      nsim = nsim,
+      iplot = FALSE,
+      cull = filterPerc,
+      seed = seed
+    )
+  } else {
+    Phase1_categorical <- list(
+      VBars = list(), UBars = list(), phiBars = numeric(), psiBars = numeric(),
+      EHats = list(), rBars = numeric(), singVals = list(), singValsHat = list(),
+      rSteps = list(), VVHatCacheBars = list(), UUHatCacheBars = list()
+    )
+  }
 
   # VBars <- Phase1[[1]]
   # UBars <- Phase1[[2]]
