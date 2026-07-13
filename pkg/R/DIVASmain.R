@@ -101,6 +101,23 @@ DIVASmain <- function(
     )
   }
 
+  Phase1_combined <- list(
+    VBars = c(Phase1_continuous$VBars, Phase1_categorical$VBars),
+    UBars = c(Phase1_continuous$UBars, Phase1_categorical$UBars),
+    phiBars = c(Phase1_continuous$phiBars, Phase1_categorical$phiBars),
+    psiBars = c(Phase1_continuous$psiBars, Phase1_categorical$psiBars),
+    EHats = c(Phase1_continuous$EHats, Phase1_categorical$EHats),
+    rBars = c(Phase1_continuous$rBars, Phase1_categorical$rBars),
+    singVals = c(Phase1_continuous$singVals, Phase1_categorical$singVals),
+    singValsHat = c(Phase1_continuous$singValsHat, Phase1_categorical$singValsHat),
+    rSteps = c(Phase1_continuous$rSteps, Phase1_categorical$rSteps),
+    VVHatCacheBars = c(Phase1_continuous$VVHatCacheBars, Phase1_categorical$VVHatCacheBars),
+    UUHatCacheBars = c(Phase1_continuous$UUHatCacheBars, Phase1_categorical$UUHatCacheBars)
+  )
+
+  combined_datablock <- c(continuous_datablock, categorical_datablock)
+  combined_dataname <- c(continuous_dataname, categorical_dataname)
+
   # VBars <- Phase1[[1]]
   # UBars <- Phase1[[2]]
   # phiBars <- Phase1[[3]]
@@ -112,8 +129,8 @@ DIVASmain <- function(
 
   # Step 2: Estimate joint and partially joint structure
   Phase2 <- DJIVEJointStrucEstimateJP(
-    VBars = Phase1_continuous$VBars, UBars = Phase1_continuous$UBars, phiBars =  Phase1_continuous$phiBars, psiBars =  Phase1_continuous$psiBars,
-    rBars = Phase1_continuous$rBars, dataname = continuous_dataname, iprint = iprint, figdir = figdir
+    VBars = Phase1_combined$VBars, UBars = Phase1_combined$UBars, phiBars =  Phase1_combined$phiBars, psiBars =  Phase1_combined$psiBars,
+    rBars = Phase1_combined$rBars, dataname = combined_dataname, iprint = iprint, figdir = figdir
   )
 
   # outMap <- Phase2[[1]]
@@ -122,36 +139,39 @@ DIVASmain <- function(
 
   # Step 3: Reconstruct DJIVE decomposition
   outstruct <- DJIVEReconstructMJ(
-    datablock = continuous_datablock, dataname =  continuous_dataname, outMap =  Phase2$outMap,
+    datablock = combined_datablock, dataname =  combined_dataname, outMap =  Phase2$outMap,
     keyIdxMap =  Phase2$keyIdxMap, jointBlockOrder =  Phase2$jointBlockOrder, doubleCenter =  0
   )
 
-  outstruct$rBars <- Phase1_continuous$rBars
-  outstruct$phiBars <- Phase1_continuous$phiBars
-  outstruct$psiBars <- Phase1_continuous$psiBars
-  outstruct$VBars <- Phase1_continuous$VBars
-  outstruct$UBars <- Phase1_continuous$UBars
-  outstruct$VVHatCacheBars <- Phase1_continuous$VVHatCacheBars
-  outstruct$UUHatCacheBars <- Phase1_continuous$UUHatCacheBars
+  outstruct$rBars <- Phase1_combined$rBars
+  outstruct$phiBars <- Phase1_combined$phiBars
+  outstruct$psiBars <- Phase1_combined$psiBars
+  outstruct$VBars <- Phase1_combined$VBars
+  outstruct$UBars <- Phase1_combined$UBars
+  outstruct$VVHatCacheBars <- Phase1_combined$VVHatCacheBars
+  outstruct$UUHatCacheBars <- Phase1_combined$UUHatCacheBars
   outstruct$Phase1_continuous <- Phase1_continuous
   outstruct$Phase1_categorical <- Phase1_categorical
+  outstruct$Phase1_combined <- Phase1_combined
   outstruct$jointBasisMapRaw <- Phase2$outMap
 
   # Automatically generate keymapname from keymapid
   ids <- as.integer(names(outstruct$keyIdxMap))
-  num_blocks <- length(continuous_dataname)
+  num_blocks <- length(combined_dataname)
   
   keymapname <- sapply(ids, function(id) {
     binary_str <- R.utils::intToBin(id)
     padded_binary_str <- sprintf(paste0("%0", num_blocks, "s"), binary_str)
     binary_chars <- strsplit(padded_binary_str, "")[[1]]
     selected_indices <- which(rev(binary_chars) == '1')
-    selected_names <- continuous_dataname[selected_indices]
+    selected_names <- combined_dataname[selected_indices]
     paste(selected_names, collapse = "+")
   })
   
   names(keymapname) <- names(outstruct$keyIdxMap)
   outstruct$keymapname <- keymapname
+  outstruct$combined_datablock <- combined_datablock
+  outstruct$combined_dataname <- combined_dataname
   outstruct$categorical_datablock <- categorical_datablock
   outstruct$categorical_dataname <- categorical_dataname
 
