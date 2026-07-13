@@ -77,12 +77,18 @@ DIVASmain <- function(
     categorical_datablock[[ib]] <- MatCenterDIVASCHOIR(categorical_datablock[[ib]])
   }
 
-  # Step 1: Estimate signal space and perturbation angle
-  Phase1 <- DJIVESignalExtractJP(
+  # Step 1: Estimate continuous signal space and perturbation angle
+  Phase1_continuous <- DJIVESignalExtractJP(
     datablock = continuous_datablock, nsim = nsim,
     iplot = FALSE, colCent = colCent, rowCent = rowCent, cull = filterPerc, noisepercentile = continuous_noisepercentile,
     seed = seed
   )
+
+  # Step 1: Estimate categorical signal space
+  Phase1_categorical <- DIVASCHOIRSignalExtract(
+    categorical_datablock = categorical_datablock
+  )
+
   # VBars <- Phase1[[1]]
   # UBars <- Phase1[[2]]
   # phiBars <- Phase1[[3]]
@@ -94,8 +100,8 @@ DIVASmain <- function(
 
   # Step 2: Estimate joint and partially joint structure
   Phase2 <- DJIVEJointStrucEstimateJP(
-    VBars = Phase1$VBars, UBars = Phase1$UBars, phiBars =  Phase1$phiBars, psiBars =  Phase1$psiBars,
-    rBars = Phase1$rBars, dataname = continuous_dataname, iprint = iprint, figdir = figdir
+    VBars = Phase1_continuous$VBars, UBars = Phase1_continuous$UBars, phiBars =  Phase1_continuous$phiBars, psiBars =  Phase1_continuous$psiBars,
+    rBars = Phase1_continuous$rBars, dataname = continuous_dataname, iprint = iprint, figdir = figdir
   )
 
   # outMap <- Phase2[[1]]
@@ -108,13 +114,15 @@ DIVASmain <- function(
     keyIdxMap =  Phase2$keyIdxMap, jointBlockOrder =  Phase2$jointBlockOrder, doubleCenter =  0
   )
 
-  outstruct$rBars <- Phase1$rBars
-  outstruct$phiBars <- Phase1$phiBars
-  outstruct$psiBars <- Phase1$psiBars
-  outstruct$VBars <- Phase1$VBars
-  outstruct$UBars <- Phase1$UBars
-  outstruct$VVHatCacheBars <- Phase1$VVHatCacheBars
-  outstruct$UUHatCacheBars <- Phase1$UUHatCacheBars
+  outstruct$rBars <- Phase1_continuous$rBars
+  outstruct$phiBars <- Phase1_continuous$phiBars
+  outstruct$psiBars <- Phase1_continuous$psiBars
+  outstruct$VBars <- Phase1_continuous$VBars
+  outstruct$UBars <- Phase1_continuous$UBars
+  outstruct$VVHatCacheBars <- Phase1_continuous$VVHatCacheBars
+  outstruct$UUHatCacheBars <- Phase1_continuous$UUHatCacheBars
+  outstruct$Phase1_continuous <- Phase1_continuous
+  outstruct$Phase1_categorical <- Phase1_categorical
   outstruct$jointBasisMapRaw <- Phase2$outMap
 
   # Automatically generate keymapname from keymapid
