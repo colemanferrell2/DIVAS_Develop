@@ -19,20 +19,20 @@ ccpSubOptJPEarlyStop <- function(v0, Qo1, Qo2, Qc1, Qc2, Vo, tau) {
   v <- CVXR::Variable(n)
   slack <- CVXR::Variable(nc + 2)
 
-  objective <- CVXR::quad_form(v, Qo1) - 2 * CVXR::t(v0) %*% Qo2 %*% v + CVXR::quad_form(v0, Qo2) + tau * sum(slack)
+  objective <- CVXR::quad_form(v, Qo1) - 2 * t(v0) %*% Qo2 %*% v + CVXR::quad_form(v0, Qo2) + tau * sum(slack)
   constraints <- list()
 
   # constraints for each Qc1 and Qc2
   for (ic in 1:nc) {
     constraints <- c(constraints,
-                     CVXR::quad_form(v, Qc1[[ic]]) - 2 * CVXR::t(v0) %*% Qc2[[ic]] %*% v + CVXR::quad_form(v0, Qc2[[ic]]) <= slack[ic])
+                     CVXR::quad_form(v, Qc1[[ic]]) - 2 * t(v0) %*% Qc2[[ic]] %*% v + CVXR::quad_form(v0, Qc2[[ic]]) <= slack[ic])
   }
   # Addition
   constraints <- c(constraints,
                    CVXR::sum_squares(v) - 1 <= slack[nc + 1],
-                   1 - 2 * CVXR::t(v0) %*% v + CVXR::sum_squares(v) <= slack[nc + 2],
+                   1 - 2 * t(v0) %*% v + CVXR::sum_squares(v) <= slack[nc + 2],
                    slack >= 0,
-                   CVXR::t(Vo) %*% v == matrix(0, nrow = ro, ncol = 1))
+                   t(Vo) %*% v == matrix(0, nrow = ro, ncol = 1))
   # cvx_end
 
   problem <- CVXR::Problem(CVXR::Minimize(objective), constraints)
@@ -41,7 +41,7 @@ ccpSubOptJPEarlyStop <- function(v0, Qo1, Qo2, Qc1, Qc2, Vo, tau) {
   result <- CVXR::psolve(problem, solver = "SCS")
 
   # PATCH: Intercept and correct the solver status.
-  # The 'SCS' solver can return a status of "solved" which CVXR version 1.0.15
+  # The 'SCS' solver can return a status of "solved" which CVXR version 1.0-15
   # does not recognize, causing a "status unrecognized" error.
   # We manually map "solved" to "optimal" to ensure compatibility.
   if (result$status == "solved") {
@@ -171,4 +171,3 @@ penaltyCCPJPEarlyStop <- function(v0, Qo1, Qo2, Qc1, Qc2, Vorth, optArgin = list
   opt_v <- cache_v[[t]]
   return(list(opt_v = opt_v, cache_v = cache_v, cache_cvx_objval = cache_cvx_objval, cache_slack = cache_slack, converge = converge))
 }
-

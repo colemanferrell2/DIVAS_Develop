@@ -15,8 +15,8 @@ knitr::opts_chunk$set(
 # # Or install from local folder
 # # devtools::load_all("DIVAS-main")
 # 
-# # Install the specified version of CVXR
-# # devtools::install_version("CVXR", version = "0.99-7", repos = "http://cran.us.r-project.org")
+# # Install a current 1.x CVXR release (example shown with 1.0-15)
+# # remotes::install_version("CVXR", version = "1.0-15", repos = "https://cloud.r-project.org")
 # 
 # # For pkgdown, libraries are generally not needed here if the package is loaded,
 # # # library(R.matlab)
@@ -77,4 +77,3 @@ knitr::opts_chunk$set(
 # # # Create names for the data blocks
 # # dataname <- paste0("DataBlock_", 1:length(datablock))
 # # plots <- DJIVEAngleDiagnosticJP(datablock, dataname, divasRes, 566, "GNP Demo")
-
