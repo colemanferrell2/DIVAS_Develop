@@ -176,5 +176,45 @@ DIVASmain <- function(
   outstruct$categorical_datablock <- categorical_datablock
   outstruct$categorical_dataname <- categorical_dataname
 
+  diagnostic_plots <- tryCatch(
+    DJIVEAngleDiagnosticJP(
+      datablock = combined_datablock,
+      dataname = combined_dataname,
+      outstruct = outstruct,
+      randseed = if (is.null(seed)) 1 else seed,
+      titlestr = "DIVAS diagnostics"
+    ),
+    error = function(e) {
+      warning("Failed to generate DIVAS diagnostic plots: ", conditionMessage(e))
+      NULL
+    }
+  )
+
+  outstruct$diagnostic_plots <- diagnostic_plots
+  if (!is.null(diagnostic_plots) && !is.null(figdir)) {
+    dir.create(figdir, recursive = TRUE, showWarnings = FALSE)
+    ggplot2::ggsave(
+      filename = file.path(figdir, "rank_breakdown.png"),
+      plot = diagnostic_plots$rank,
+      width = 12,
+      height = 6,
+      dpi = 300
+    )
+    ggplot2::ggsave(
+      filename = file.path(figdir, "joint_structure_score_diagnostics.png"),
+      plot = diagnostic_plots$score,
+      width = 12,
+      height = 8,
+      dpi = 300
+    )
+    ggplot2::ggsave(
+      filename = file.path(figdir, "joint_structure_loading_diagnostics.png"),
+      plot = diagnostic_plots$loading,
+      width = 12,
+      height = 8,
+      dpi = 300
+    )
+  }
+
   return(outstruct)
 }
