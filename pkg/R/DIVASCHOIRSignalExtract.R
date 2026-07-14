@@ -96,8 +96,8 @@ DIVASCHOIRSignalExtract <- function(
 
     rSteps[[ib]] <- rHat
 
-    # Bootstrap estimation and signal rank adjustment by removing PCs with
-    # perturbation angle larger than half the value of random direction angle.
+    # Bootstrap estimation for perturbation-angle bounds. The categorical
+    # signal rank is fixed at rHat; bootstrapping should not cull dimensions.
     PCAnglesCacheFullBoot <- matrix(90, nsim, rHat)
     PCAnglesCacheFullBootLoad <- matrix(90, nsim, rHat)
 
@@ -131,14 +131,8 @@ DIVASCHOIRSignalExtract <- function(
     randAngleLoad <- as.numeric(randAngleLoad)
     cull <- as.numeric(cull)
 
-    quantiles_validPC <- apply(PCAnglesCacheFullBoot, 2, stats::quantile, probs = 0.95)
-    validPC <- quantiles_validPC < as.numeric(randAngle * cull)
-
-    minInd <- which.min(quantiles_validPC)
-    minInd <- as.numeric(minInd)
-    validPC[minInd] <- TRUE
-
-    rBar <- sum(validPC)
+    validPC <- rep(TRUE, rHat)
+    rBar <- rHat
     phiBar <- stats::quantile(PCAnglesCacheFullBoot[, rBar], 0.95)
     psiBar <- stats::quantile(PCAnglesCacheFullBootLoad[, rBar], 0.95)
 

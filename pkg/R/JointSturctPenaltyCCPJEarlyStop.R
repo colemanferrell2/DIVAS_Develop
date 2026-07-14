@@ -36,22 +36,20 @@ ccpSubOptJPEarlyStop <- function(v0, Qo1, Qo2, Qc1, Qc2, Vo, tau) {
   # cvx_end
 
   problem <- CVXR::Problem(CVXR::Minimize(objective), constraints)
-  # Changed the hardcoded solver from "ECOS" to the more robust "SCS"
-  # to handle numerical difficulties that caused the previous "Solver failed" error.
-  result <- CVXR::psolve(problem, solver = "SCS")
+  result <- tryCatch(
+    solve(problem, solver = "SCS"),
+    error = function(e) solve(problem, solver = "CLARABEL")
+  )
 
-  # PATCH: Intercept and correct the solver status.
-  # The 'SCS' solver can return a status of "solved" which CVXR version 1.0-15
-  # does not recognize, causing a "status unrecognized" error.
-  # We manually map "solved" to "optimal" to ensure compatibility.
-  if (result$status == "solved") {
+  if (!is.null(result$status) && result$status == "solved") {
     result$status <- "optimal"
   }
 
-  # result <- CVXR::solve(problem)
-  #result <- solve(problem, solver = "ECOS")
   v_opt <- result$getValue(v)
   slack_opt <- result$getValue(slack)
+  if (is.null(v_opt) || is.null(slack_opt) || length(v_opt) == 0 || length(slack_opt) == 0) {
+    stop("CVXR solver did not return primal values. Solver status: ", result$status)
+  }
   cvx_objval <- t(v_opt) %*% Qo1 %*% v_opt - 2 * t(v0) %*% Qo2 %*% v_opt + t(v0) %*% Qo2 %*% v0
 
   return(list(v = v_opt, slack = slack_opt, objval = cvx_objval,  status=result$status))

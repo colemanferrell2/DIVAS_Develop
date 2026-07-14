@@ -130,7 +130,8 @@ DIVASmain <- function(
   # Step 2: Estimate joint and partially joint structure
   Phase2 <- DJIVEJointStrucEstimateJP(
     VBars = Phase1_combined$VBars, UBars = Phase1_combined$UBars, phiBars =  Phase1_combined$phiBars, psiBars =  Phase1_combined$psiBars,
-    rBars = Phase1_combined$rBars, dataname = combined_dataname, iprint = iprint, figdir = figdir
+    rBars = Phase1_combined$rBars, dataname = combined_dataname, theta0 = theta0,
+    optArgin = optArgin, iprint = iprint, figdir = figdir
   )
 
   # outMap <- Phase2[[1]]

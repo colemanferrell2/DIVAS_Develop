@@ -7,6 +7,7 @@
 #' @return A numeric value or vector representing the arccosine of the input, expressed in degrees.
 #'
 acosd <- function(x) {
+  x <- pmin(1, pmax(-1, x))
   return(acos(x) * 180 / pi)
 }
 

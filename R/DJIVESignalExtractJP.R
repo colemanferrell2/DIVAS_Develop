@@ -36,8 +36,8 @@ DJIVESignalExtractJP <- function(
 ){
 
   # Check input dimensions
-  if(!methods::is(datablock, "list")) stop("Input datablock has to be a list with length >= 2.")
-  if(length(datablock) < 2) stop("Input datablock has to be a list with length >= 2.")
+  if(!methods::is(datablock, "list")) stop("Input datablock has to be a list with length >= 1.")
+  if(length(datablock) < 1) stop("Input datablock has to be a list with length >= 1.")
   if(max(sapply(datablock, ncol)) != min(sapply(datablock, ncol))) stop("All data blocks have to have the same number of columns (samples).")
 
   # Check data block names
@@ -47,9 +47,6 @@ DJIVESignalExtractJP <- function(
     warning("Input datablock is unnamed, generic names for data blocks generated.")
     dataname <- paste0("Datablock", 1:nb)
   }
-
-  print(length(noisepercentile))
-  print(length(datablock))
 
   # Check noisepercentile length
   if(length(noisepercentile) != length(datablock)) stop("Input noisepercentile has to have the same length as datablock (ie number of data blocks).")
