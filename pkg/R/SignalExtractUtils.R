@@ -78,6 +78,15 @@ MatCenterDIVASCHOIR <- function(block) {
   svd_input <- sweep(svd_input, 1, sqrt(p_hat), "/")
 
   colnames(svd_input) <- rownames(block)
+  attr(svd_input, "divaschoir_variable_levels") <- Map(function(variable_name, indicator_matrix) {
+    x <- block[[variable_name]]
+    list(
+      variable = variable_name,
+      levels = levels(x),
+      rows = colnames(indicator_matrix)
+    )
+  }, names(block), indicator_list)
+  attr(svd_input, "divaschoir_p_hat") <- p_hat
   svd_input
 }
 #

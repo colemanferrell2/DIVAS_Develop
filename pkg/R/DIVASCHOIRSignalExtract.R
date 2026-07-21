@@ -37,6 +37,39 @@ DIVASCHOIRSignalExtract <- function(
     set.seed(seed)
   }
 
+  softmax_stable <- function(x) {
+    x <- x - max(x)
+    exp_x <- exp(x)
+    exp_x / sum(exp_x)
+  }
+
+  simulate_mca_multinomial <- function(theta_hat, p_hat, variable_levels) {
+    n <- ncol(theta_hat)
+    sim_block <- vector("list", length(variable_levels))
+    names(sim_block) <- vapply(variable_levels, `[[`, character(1), "variable")
+
+    for (variable in variable_levels) {
+      rows <- variable$rows
+      levels <- variable$levels
+      row_idx <- match(rows, rownames(theta_hat))
+      if (anyNA(row_idx)) {
+        stop("Could not match categorical levels back to MCA rows for variable ", variable$variable, ".")
+      }
+
+      sampled <- character(n)
+      for (sample_idx in seq_len(n)) {
+        eta <- log(p_hat[row_idx]) + sqrt(p_hat[row_idx]) * theta_hat[row_idx, sample_idx]
+        probs <- softmax_stable(eta)
+        sampled[sample_idx] <- sample(levels, size = 1L, prob = probs)
+      }
+      sim_block[[variable$variable]] <- factor(sampled, levels = levels)
+    }
+
+    sim_block <- as.data.frame(sim_block, stringsAsFactors = TRUE)
+    rownames(sim_block) <- colnames(theta_hat)
+    MatCenterDIVASCHOIR(sim_block)
+  }
+
   # Check input dimensions
   if(!methods::is(datablock, "list")) stop("Input datablock has to be a list with length >= 1.")
   if(length(datablock) < 1) stop("Input datablock has to be a list with length >= 1.")
@@ -70,6 +103,16 @@ DIVASCHOIRSignalExtract <- function(
     datablockc <- datablock[[ib]]
     d <- nrow(datablockc)
     n <- ncol(datablockc)
+    p_hat <- attr(datablockc, "divaschoir_p_hat")
+    variable_levels <- attr(datablockc, "divaschoir_variable_levels")
+    if (is.null(p_hat) || is.null(variable_levels)) {
+      stop(
+        "Categorical block ", dataname[ib],
+        " is missing DIVASCHOIR level metadata needed for multinomial bootstrap. ",
+        "Pass raw categorical blocks through DIVASmain/MatCenterDIVASCHOIR."
+      )
+    }
+
     cat("Categorical datablock dimensions:", d, "features;", n, "samples \n")
 
     # Fixed initial categorical signal rank by truncated SVD.
@@ -85,6 +128,8 @@ DIVASCHOIRSignalExtract <- function(
     signal_hat <- U_hat %*%
       diag(d_hat, nrow = rHat) %*%
       t(V_hat)
+    rownames(signal_hat) <- rownames(datablockc)
+    colnames(signal_hat) <- colnames(datablockc)
 
     EHat <- datablockc - signal_hat
     singValsTilde <- d_hat
@@ -105,13 +150,9 @@ DIVASCHOIRSignalExtract <- function(
     cat(paste0("\n", strrep(".", nsim), "\n\n"))
 
     for (s in seq_len(nsim)) {
-      randV <- matrix(stats::rnorm(n * rHat), n, rHat)
-      randV <- qr.Q(qr(randV))
-
-      randU <- matrix(stats::rnorm(d * rHat), d, rHat)
-      randU <- qr.Q(qr(randU))
-
-      randX <- randU %*% diag(singValsTilde, nrow = length(singValsTilde)) %*% t(randV) + EHat
+      randX <- simulate_mca_multinomial(signal_hat, p_hat, variable_levels)
+      randU <- U_hat
+      randV <- V_hat
       svdRand <- svd(randX)
       randUHat <- svdRand$u[, idx, drop = FALSE]
       randVHat <- svdRand$v[, idx, drop = FALSE]
@@ -142,13 +183,14 @@ DIVASCHOIRSignalExtract <- function(
     UUHatCacheBar <- vector("list", nsim)
     singValsTildeBar <- singValsTilde[seq_len(rBar)]
     for (s in seq_len(nsim)) {
-      randV <- matrix(stats::rnorm(n * rBar), n, rBar)
-      randV <- qr.Q(qr(randV))
-
-      randU <- matrix(stats::rnorm(d * rBar), d, rBar)
-      randU <- qr.Q(qr(randU))
-
-      randX <- randU %*% diag(singValsTildeBar, nrow = length(singValsTildeBar)) %*% t(randV) + EHat
+      theta_bar <- U_hat[, seq_len(rBar), drop = FALSE] %*%
+        diag(singValsTildeBar, nrow = length(singValsTildeBar)) %*%
+        t(V_hat[, seq_len(rBar), drop = FALSE])
+      rownames(theta_bar) <- rownames(datablockc)
+      colnames(theta_bar) <- colnames(datablockc)
+      randX <- simulate_mca_multinomial(theta_bar, p_hat, variable_levels)
+      randU <- U_hat[, seq_len(rBar), drop = FALSE]
+      randV <- V_hat[, seq_len(rBar), drop = FALSE]
       svdRand <- svd(randX)
       randUHat <- svdRand$u[, seq_len(rBar), drop = FALSE]
       randVHat <- svdRand$v[, seq_len(rBar), drop = FALSE]
